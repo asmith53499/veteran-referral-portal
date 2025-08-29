@@ -1,258 +1,317 @@
 # Veteran Referral Outcomes Portal
 
-A secure, privacy-preserving system for tracking veteran referral outcomes between the Veterans Crisis Line (VCL/988) and Veteran Service Organizations (VSOs/VSAs).
+A secure, privacy-preserving system designed to bridge the data gap between the Veterans Crisis Line (VCL/988) and Veteran Service Organizations (VSOs/VSAs). The system enables VSAs to log outcomes of referrals in a standardized, secure, non-PII format while providing VA and stakeholders with aggregate, transparent reporting on referral effectiveness.
 
-## 🎯 **Project Status: Phase 2 Complete**
+## 🎯 **Project Overview**
 
-### ✅ **COMPLETED FEATURES**
-- **Infrastructure**: AWS VPC, RDS PostgreSQL, security groups
-- **Backend API**: FastAPI with comprehensive endpoints
-- **Authentication**: JWT-based auth with role management (VA_ADMIN, VSA_ADMIN, VSA_USER)
-- **CSV Import**: Working import with PII detection and validation
-- **Statistics**: Real-time analytics and reporting
-- **Database**: Complete schema with relationships and constraints
+The Veteran Referral Outcomes Portal addresses a critical gap in veteran service coordination by providing a secure platform for tracking referral outcomes without compromising veteran privacy. The system maintains a zero-PII architecture while enabling comprehensive reporting and analytics.
 
-### 🔄 **CURRENT STATUS**
-- **Phase 1**: ✅ Complete (Core Setup & Basic API)
-- **Phase 2**: ✅ Complete (Authentication & Authorization)
-- **Phase 3**: 🔄 Next (Outcomes Tracking)
+### **Key Features**
+- **Zero-PII Architecture**: No personally identifiable information stored in shared systems
+- **Token-based Tracking**: Secure referral tracking using UUIDs/HMACs
+- **Role-based Access**: VA_ADMIN, VSA_ADMIN, and VSA_USER roles
+- **Real-time Analytics**: Dashboard with live statistics and reporting
+- **Bulk Operations**: Efficient data import and management
+- **Mobile-responsive**: Works on all devices and screen sizes
+
+## 🏗 **Architecture**
+
+### **Technology Stack**
+- **Backend**: FastAPI (Python) with SQLAlchemy ORM
+- **Frontend**: React + Next.js with TypeScript
+- **Database**: PostgreSQL with Row-Level Security (RLS)
+- **Infrastructure**: AWS with Terraform IaC
+- **Authentication**: JWT with role-based access control
+
+### **System Architecture**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   Database      │
+│   (Next.js)     │◄──►│   (FastAPI)     │◄──►│  (PostgreSQL)   │
+│   Port 3001     │    │   Port 8000     │    │   Port 5432     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   JWT Auth      │    │   CORS Config   │    │   RLS Policies  │
+│   localStorage  │    │   Rate Limiting │    │   Data Isolation│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
 ## 🚀 **Quick Start**
 
 ### **Prerequisites**
-- Python 3.13+
-- PostgreSQL 15.7+
-- AWS CLI configured
-- Terraform 1.0+
+- Python 3.8+
+- Node.js 18+
+- PostgreSQL 13+
+- Docker (optional)
+- AWS CLI (for deployment)
 
 ### **Local Development Setup**
+
+1. **Clone the repository**
 ```bash
-# Clone repository
 git clone <repository-url>
 cd project_bridgepoint
-
-# Backend setup
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Database setup
-createdb veteran_referral_portal
-psql -d veteran_referral_portal -f ../database/schema.sql
-psql -d veteran_referral_portal -f ../database/users_schema.sql
-
-# Start server
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### **Test the API**
+2. **Start the backend**
 ```bash
-# Health check
-curl http://localhost:8000/v1/health
-
-# Login (default VA admin)
-curl -X POST "http://localhost:8000/v1/auth/login" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=va_admin&password=admin123"
-
-# Import sample data
-curl -X POST -F "file=@../data/sample_referrals.csv" \
-  -F "vsa_id=TEST_VSA_001" \
-  http://localhost:8000/v1/referrals/import/csv
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
 ```
 
-## 🏗️ **Architecture**
-
-### **Backend Stack**
-- **Framework**: FastAPI (Python 3.13)
-- **Database**: PostgreSQL 15.7 (AWS RDS)
-- **ORM**: SQLAlchemy 2.0
-- **Authentication**: JWT tokens with bcrypt
-- **Validation**: Pydantic schemas
-- **Logging**: Structured logging with structlog
-
-### **Infrastructure**
-- **Cloud**: AWS (VPC, RDS, Security Groups)
-- **IaC**: Terraform for infrastructure as code
-- **Security**: Private subnets, encrypted storage
-- **Monitoring**: CloudWatch logs and metrics
-
-### **Security Features**
-- **Zero-PII Design**: No personally identifiable information stored
-- **Token-Based Tracking**: UUIDs for referral identification
-- **Role-Based Access**: VA_ADMIN, VSA_ADMIN, VSA_USER roles
-- **Password Security**: bcrypt hashing with salt
-- **JWT Authentication**: Secure token-based sessions
-
-## 📊 **Data Model**
-
-### **Core Tables**
-- **referrals**: Token-based referral tracking with standardized fields
-- **outcomes**: Outcome status and reason tracking
-- **users**: Role-based access control
-- **organizations**: VSA organization management
-- **audit_logs**: WORM-compliant audit trail
-
-### **CSV Import Structure**
-```csv
-referral_token,issued_at,vsa_id,program_code,episode_id,referral_type,priority_level,crisis_type,urgency_indicator,expected_contact_date,va_facility_code
-550e8400-e29b-41d4-a716-446655440000,2024-01-15T10:30:00Z,TEST_VSA_001,CRISIS_INTERVENTION,EP001,CRISIS_HOTLINE,HIGH,SUICIDE_RISK,IMMEDIATE,2025-09-15,VA_ATL
+3. **Start the frontend**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
-## 🔌 **API Endpoints**
+4. **Access the application**
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+
+### **Demo Credentials**
+- **VA Admin**: `va_admin` / `admin123`
+- **VSA Admin**: `vsa_admin_2` / `newpassword456`
+
+## 📁 **Project Structure**
+
+```
+project_bridgepoint/
+├── backend/                    # FastAPI backend
+│   ├── app/
+│   │   ├── api/               # API endpoints
+│   │   ├── core/              # Core functionality
+│   │   ├── models/            # Database models
+│   │   ├── schemas/           # Pydantic schemas
+│   │   └── main.py            # Application entry point
+│   ├── data/                  # Sample data
+│   ├── requirements.txt       # Python dependencies
+│   └── run.py                 # Development server
+├── frontend/                   # Next.js frontend
+│   ├── src/
+│   │   ├── app/               # Next.js App Router
+│   │   ├── components/        # React components
+│   │   ├── contexts/          # React contexts
+│   │   ├── lib/               # Utilities and API
+│   │   └── types/             # TypeScript definitions
+│   ├── package.json           # Node.js dependencies
+│   └── tailwind.config.js     # Tailwind configuration
+├── infrastructure/             # AWS Terraform
+│   ├── main.tf                # Main infrastructure
+│   ├── variables.tf           # Variable definitions
+│   └── outputs.tf             # Output values
+├── docs/                       # Documentation
+├── PHASE1_COMPLETE.md         # Phase 1 documentation
+├── PHASE2_COMPLETE.md          # Phase 2 documentation
+├── PHASE3_COMPLETE.md          # Phase 3 documentation
+├── PHASE4_COMPLETE.md          # Phase 4 documentation
+├── PROJECT_STATUS.md           # Current project status
+└── README.md                   # This file
+```
+
+## 🔧 **Configuration**
+
+### **Environment Variables**
+
+#### **Backend (.env)**
+```bash
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/database_name
+
+# Security
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# CORS
+ALLOWED_ORIGINS=["http://localhost:3001"]
+ALLOWED_HOSTS=["localhost", "127.0.0.1"]
+
+# AWS (for production)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+```
+
+#### **Frontend (.env.local)**
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## 📊 **API Endpoints**
 
 ### **Authentication**
 - `POST /v1/auth/login` - User login
-- `GET /v1/auth/users/me` - Current user profile
-- `PUT /v1/auth/users/me` - Update user profile
+- `GET /v1/auth/users/me` - Get current user profile
 - `POST /v1/auth/users/me/change-password` - Change password
 
 ### **Referrals**
-- `GET /v1/referrals` - List referrals
-- `POST /v1/referrals/import/csv` - Import CSV data
-- `GET /v1/referrals/summary/stats` - Get statistics
+- `GET /v1/referrals` - List referrals (with pagination)
 - `GET /v1/referrals/{referral_token}` - Get specific referral
+- `POST /v1/referrals/import/csv` - Import referrals from CSV
+- `GET /v1/referrals/summary/stats` - Get referral statistics
 
-### **User Management (VA Admin Only)**
-- `GET /v1/auth/users` - List all users
-- `POST /v1/auth/users` - Create new user
-- `GET /v1/auth/users/{user_id}` - Get specific user
-- `PUT /v1/auth/users/{user_id}` - Update user
+### **Outcomes**
+- `GET /v1/outcomes` - List outcomes (with pagination)
+- `POST /v1/outcomes` - Create new outcome
+- `PUT /v1/outcomes/{outcome_id}` - Update outcome
+- `DELETE /v1/outcomes/{outcome_id}` - Soft delete outcome
+- `POST /v1/outcomes/bulk` - Create multiple outcomes
+- `GET /v1/outcomes/summary/stats` - Get outcome statistics
 
-### **Health & Monitoring**
-- `GET /v1/health` - Health check
-- `GET /docs` - Interactive API documentation
+### **Health**
+- `GET /health` - Health check endpoint
+- `GET /` - Root endpoint with API information
+
+## 🔐 **Security Features**
+
+### **Authentication & Authorization**
+- **JWT Tokens**: Secure token-based authentication
+- **Role-based Access**: Different permissions for different user types
+- **Password Hashing**: bcrypt for secure password storage
+- **Token Expiration**: Configurable token lifetime
+
+### **Data Protection**
+- **Zero-PII Architecture**: No personally identifiable information stored
+- **Row-Level Security**: Database-level data isolation
+- **CORS Protection**: Cross-origin request protection
+- **Input Validation**: Comprehensive data validation
+
+### **API Security**
+- **Rate Limiting**: Protection against abuse
+- **Request Validation**: Pydantic schema validation
+- **Error Handling**: Secure error responses
+- **Logging**: Comprehensive audit trail
+
+## 📈 **Data Models**
+
+### **Users**
+```sql
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    vsa_id VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### **Referrals**
+```sql
+CREATE TABLE referrals (
+    referral_token VARCHAR(255) PRIMARY KEY,
+    issued_at TIMESTAMP NOT NULL,
+    vsa_id VARCHAR(50) NOT NULL,
+    program_code VARCHAR(50) NOT NULL,
+    episode_id VARCHAR(50),
+    referral_type VARCHAR(50) NOT NULL,
+    priority_level VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+### **Outcomes**
+```sql
+CREATE TABLE outcomes (
+    id VARCHAR(50) PRIMARY KEY,
+    referral_token VARCHAR(255) REFERENCES referrals(referral_token),
+    vsa_id VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    reason_code VARCHAR(20),
+    first_contact_at TIMESTAMP,
+    closed_at TIMESTAMP,
+    notes TEXT,
+    updated_by VARCHAR(50) NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
 ## 🚀 **Deployment**
 
-### **AWS Infrastructure**
+### **AWS Deployment**
+
+1. **Configure AWS credentials**
 ```bash
-# Deploy infrastructure
+aws configure
+```
+
+2. **Initialize Terraform**
+```bash
 cd infrastructure
 terraform init
+```
+
+3. **Plan deployment**
+```bash
 terraform plan
+```
+
+4. **Deploy infrastructure**
+```bash
 terraform apply
 ```
 
-### **Database Setup**
+### **Docker Deployment**
+
+1. **Build images**
 ```bash
-# Apply schema
-./scripts/init_database.sh
+docker build -t vrp-backend ./backend
+docker build -t vrp-frontend ./frontend
 ```
 
-### **Application Deployment**
+2. **Run containers**
 ```bash
-# Build and deploy application
-cd backend
-docker build -t veteran-referral-portal .
-docker run -p 8000:8000 veteran-referral-portal
+docker run -p 8000:8000 vrp-backend
+docker run -p 3001:3000 vrp-frontend
 ```
-
-## 📈 **Performance**
-
-### **Current Metrics**
-- **API Response Time**: < 100ms for most endpoints
-- **Database Queries**: Optimized with proper indexes
-- **Memory Usage**: Efficient SQLAlchemy session management
-- **Concurrent Users**: Tested with multiple simultaneous requests
-
-### **Scalability**
-- **Database**: RDS with read replicas for scaling
-- **Application**: Stateless design for horizontal scaling
-- **Caching**: Redis for session and query caching
-- **Load Balancing**: ALB for traffic distribution
-
-## 🔒 **Security**
-
-### **Data Protection**
-- **Zero-PII Design**: No personally identifiable information stored
-- **Encryption**: Data encrypted at rest and in transit
-- **Access Control**: Role-based permissions
-- **Audit Logging**: Complete audit trail for compliance
-
-### **Network Security**
-- **VPC Isolation**: Private subnets for database
-- **Security Groups**: Restrictive firewall rules
-- **SSL/TLS**: Encrypted connections throughout
-- **IAM Roles**: Least privilege access
-
-## 📋 **Development Phases**
-
-### **✅ Phase 1: Core Setup & Basic API (COMPLETED)**
-- Infrastructure setup (AWS VPC, RDS)
-- Database schema design
-- FastAPI backend with core endpoints
-- CSV import functionality
-- Statistics and reporting
-
-### **✅ Phase 2: Authentication & Authorization (COMPLETED)**
-- JWT token-based authentication
-- Role-based access control
-- User management system
-- Password security
-- Authorization enforcement
-
-### **🔄 Phase 3: Outcomes Tracking (NEXT)**
-- Outcome creation and management
-- Status tracking and validation
-- Outcome statistics
-- VSA-specific views
-
-### **📋 Phase 4: Frontend Development (PLANNED)**
-- React/Next.js application
-- User interface design
-- Authentication integration
-- Responsive design
-
-### **📋 Phase 5: Row-Level Security (PLANNED)**
-- Database-level VSA data isolation
-- RLS policies implementation
-- User context management
-
-### **📋 Phase 6: Reporting & Analytics (PLANNED)**
-- Advanced reporting dashboard
-- Export functionality
-- Custom analytics
-- Performance metrics
 
 ## 🧪 **Testing**
+
+### **Backend Testing**
+```bash
+cd backend
+python -m pytest tests/
+```
+
+### **Frontend Testing**
+```bash
+cd frontend
+npm test
+```
 
 ### **API Testing**
 ```bash
 # Test health endpoint
-curl http://localhost:8000/v1/health
+curl http://localhost:8000/health
 
-# Test authentication
+# Test login
 curl -X POST "http://localhost:8000/v1/auth/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=va_admin&password=admin123"
-
-# Test CSV import
-curl -X POST -F "file=@../data/sample_referrals.csv" \
-  -F "vsa_id=TEST_VSA_001" \
-  http://localhost:8000/v1/referrals/import/csv
-```
-
-### **Database Testing**
-```bash
-# Connect to database
-psql -d veteran_referral_portal
-
-# Check tables
-\dt
-
-# Check data
-SELECT COUNT(*) FROM referrals;
-SELECT COUNT(*) FROM users;
+  -d "username=vsa_admin_2&password=newpassword456"
 ```
 
 ## 📚 **Documentation**
 
-- **API Documentation**: `/docs` endpoint when server is running
-- **Development Notes**: [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
-- **Infrastructure**: [infrastructure/README.md](infrastructure/README.md)
-- **Database Schema**: [database/schema.sql](database/schema.sql)
+- **[Phase 1 Complete](PHASE1_COMPLETE.md)** - Core setup and basic API
+- **[Phase 2 Complete](PHASE2_COMPLETE.md)** - Authentication and authorization
+- **[Phase 3 Complete](PHASE3_COMPLETE.md)** - Outcomes tracking
+- **[Phase 4 Complete](PHASE4_COMPLETE.md)** - Frontend development
+- **[Project Status](PROJECT_STATUS.md)** - Current project status
+- **[API Documentation](http://localhost:8000/docs)** - Interactive API docs
 
 ## 🤝 **Contributing**
 
@@ -266,15 +325,20 @@ SELECT COUNT(*) FROM users;
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📞 **Support**
+## 🆘 **Support**
 
 For support and questions:
-- **Documentation**: See [DEVELOPMENT_NOTES.md](DEVELOPMENT_NOTES.md)
-- **API Docs**: Available at `/docs` when server is running
+- **Documentation**: Check the docs folder and API documentation
 - **Issues**: Create an issue in the repository
+- **Email**: Contact the development team
+
+## 🎉 **Acknowledgments**
+
+- **Veterans Crisis Line** for the referral data structure
+- **Veteran Service Organizations** for feedback and requirements
+- **FastAPI** and **Next.js** communities for excellent documentation
+- **AWS** for cloud infrastructure services
 
 ---
 
-**Last Updated**: August 29, 2025  
-**Version**: 1.0.0  
-**Status**: Phase 2 Complete - Ready for Phase 3
+**Built with ❤️ for veterans and their service organizations**
