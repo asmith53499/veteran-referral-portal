@@ -1,0 +1,6 @@
+referral_token,status,reason_code,first_contact_at,closed_at,notes
+550e8400-e29b-41d4-a716-446655440000,COMPLETED,COMPLETED_SUCCESSFULLY,2024-01-16T09:00:00Z,2024-01-20T15:30:00Z,Veteran successfully engaged with crisis intervention services. Completed safety planning and connected with ongoing mental health support.
+550e8400-e29b-41d4-a716-446655440001,ENGAGED,,2024-01-17T10:15:00Z,,Initial contact made. Veteran expressed interest in anxiety management program. Scheduled follow-up appointment.
+550e8400-e29b-41d4-a716-446655440002,COMPLETED,COMPLETED_SUCCESSFULLY,2024-01-18T08:30:00Z,2024-01-25T14:00:00Z,Depression screening completed. Veteran enrolled in 8-week therapy program. Regular check-ins established.
+550e8400-e29b-41d4-a716-446655440003,WAITLIST,CAPACITY,2024-01-19T11:45:00Z,,PTSD treatment program at capacity. Added to waitlist. Estimated wait time: 2-3 weeks.
+550e8400-e29b-41d4-a716-446655440004,COMPLETED,REFERRED_TO_OTHER_SERVICE,2024-01-20T13:20:00Z,2024-01-22T16:00:00Z,Substance abuse assessment completed. Referred to specialized addiction treatment facility. Handoff completed successfully.

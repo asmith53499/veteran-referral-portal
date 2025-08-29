@@ -26,8 +26,6 @@ class ReasonCodeEnum(str, enum.Enum):
     CAPACITY = "CAPACITY"
     INELIGIBLE = "INELIGIBLE"
     WITHDREW = "WITHDREW"
-    COMPLETED_SUCCESSFULLY = "COMPLETED_SUCCESSFULLY"
-    REFERRED_TO_OTHER_SERVICE = "REFERRED_TO_OTHER_SERVICE"
     OTHER_NONPII = "OTHER_NONPII"
 
 class Outcome(Base):
@@ -35,8 +33,8 @@ class Outcome(Base):
     
     __tablename__ = "outcomes"
     
-    # Primary key
-    id = Column(String(255), primary_key=True, default=lambda: f"outcome_{func.now().strftime('%Y%m%d_%H%M%S')}_{func.random()}")
+    # Primary key - use UUID to match database schema
+    id = Column(String(50), primary_key=True, index=True)
     
     # Foreign key to referral
     referral_token = Column(String(255), ForeignKey("referrals.referral_token"), nullable=False, index=True)
