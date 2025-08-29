@@ -1,0 +1,32 @@
+# FastAPI Backend Dependencies - Simplified for Python 3.13 compatibility
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+python-multipart>=0.0.6
+
+# Database - Using asyncpg instead of psycopg2 for better Python 3.13 support
+sqlalchemy>=2.0.0
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.0
+alembic>=1.11.0
+
+# Authentication & Security
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-dotenv>=1.0.0
+
+# Data Validation - Using newer Pydantic versions
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+email-validator>=2.0.0
+
+# HTTP Client
+httpx>=0.24.0
+
+# Logging & Monitoring
+structlog>=23.0.0
+
+# Development
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
