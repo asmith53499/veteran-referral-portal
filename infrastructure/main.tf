@@ -14,7 +14,7 @@ terraform {
   # Backend configuration for state management
   # Uncomment and configure when ready to use remote state
   # backend "s3" {
-  #   bucket = "vrp-terraform-state-754965642394"
+  #   bucket = "<your-terraform-state-bucket>"
   #   key    = "veteran-referral-portal/terraform.tfstate"
   #   region = "us-east-1"
   # }

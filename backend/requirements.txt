@@ -10,8 +10,11 @@ psycopg2-binary>=2.9.0
 alembic>=1.11.0
 
 # Authentication & Security
+# passlib's version-detection breaks on bcrypt>=4.1 (it reads bcrypt.__about__,
+# which newer bcrypt releases removed), so the bcrypt backend has to stay pinned below that.
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
+bcrypt<4.1.0
 python-dotenv>=1.0.0
 
 # Data Validation - Using newer Pydantic versions

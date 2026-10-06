@@ -31,9 +31,6 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_vsa_id ON users(vsa_id);
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
 
--- Add relationship to organizations table
-ALTER TABLE organizations ADD COLUMN IF NOT EXISTS users relationship;
-
 -- Create a default VA admin user (password: admin123)
 INSERT INTO users (
     id, username, email, hashed_password, full_name, role, is_active, is_verified
@@ -44,6 +41,21 @@ INSERT INTO users (
     '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS.iK8O', -- admin123
     'VA System Administrator',
     'VA_ADMIN',
+    TRUE,
+    TRUE
+) ON CONFLICT (id) DO NOTHING;
+
+-- Create a default VSA admin user, tied to the seeded VSA001 organization (password: vsapass123)
+INSERT INTO users (
+    id, username, email, hashed_password, full_name, role, vsa_id, is_active, is_verified
+) VALUES (
+    'vsa-admin-001',
+    'vsa_admin',
+    'admin@vetscrisis.org',
+    '$2b$12$efe1qZ/UFbt97Jw3EO8bteEJPxZMWAOmiLHGwLBHPLc/GM4cfllVi', -- vsapass123
+    'VSA Site Administrator',
+    'VSA_ADMIN',
+    'VSA001',
     TRUE,
     TRUE
 ) ON CONFLICT (id) DO NOTHING;

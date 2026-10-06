@@ -8,6 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 import structlog
 
@@ -118,6 +119,39 @@ def require_vsa_access():
             )
         return current_user
     return vsa_checker
+
+def require_va_or_vsa_access():
+    """Decorator for read access shared by VA admins (all VSAs) and VSA staff (their own VSA)"""
+    def checker(current_user: User = Depends(get_current_active_user)):
+        if not current_user.can_access_vsa_data:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="VA or VSA access required"
+            )
+        return current_user
+    return checker
+
+def get_db_with_context(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Session:
+    """
+    Same session as get_db, but with the Postgres session variables the
+    row-level security policies in database/schema.sql check (app.vsa_id,
+    app.user_id, app.user_role) set for the authenticated user making this
+    request. Use this instead of get_db on any endpoint that reads/writes
+    referrals or outcomes, so RLS actually isolates VSA data at the database
+    layer rather than relying solely on the application-level filters above.
+    """
+    db.execute(
+        text("SELECT set_app_context(:vsa_id, :user_id, :user_role)"),
+        {
+            "vsa_id": current_user.vsa_id,
+            "user_id": current_user.id,
+            "user_role": current_user.role.value,
+        },
+    )
+    return db
 
 def require_va_access():
     """Decorator to require VA access (VA_ADMIN)"""

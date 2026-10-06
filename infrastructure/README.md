@@ -137,11 +137,9 @@ terraform destroy
 - Review **Cost Explorer** for ongoing charges
 - Verify **S3 buckets** are empty and deleted
 
-## Next Steps
+## Next steps
 
-After infrastructure deployment:
-1. **Database Schema** → Create tables and RLS policies
-2. **Backend API** → Deploy FastAPI to ECS
-3. **Frontend Portal** → Deploy React app to S3/CloudFront
-4. **Integration Testing** → Test CSV intake and VSA portal
-5. **Pilot Deployment** → Onboard initial VSA partners
+This provisions networking, the database, and cost tracking - not application hosting. After `terraform apply`:
+1. Apply `database/schema.sql` and `database/users_schema.sql` against the new RDS instance (`../scripts/init_database.sh`).
+2. Run the FastAPI backend somewhere that can reach it (not yet automated - see the root `DEPLOYMENT.md`).
+3. Point the frontend's `NEXT_PUBLIC_API_URL` at that backend.

@@ -10,11 +10,10 @@ from sqlalchemy import func, and_, or_
 import structlog
 import uuid
 
-from app.core.database import get_db
-from app.core.auth import get_current_active_user, require_vsa_access
+from app.core.auth import require_vsa_access, require_va_or_vsa_access, get_db_with_context
 from app.models.outcomes import Outcome, OutcomeStatusEnum, ReasonCodeEnum
 from app.models.referrals import Referral
-from app.models.users import User
+from app.models.users import User, UserRoleEnum
 from app.schemas.outcomes import (
     OutcomeCreate, OutcomeUpdate, OutcomeResponse, OutcomeListResponse,
     OutcomeStatsResponse, OutcomeBulkCreate, OutcomeBulkResponse
@@ -27,7 +26,7 @@ router = APIRouter()
 async def create_outcome(
     outcome_data: OutcomeCreate,
     current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_with_context)
 ):
     """Create a new outcome for a referral"""
     try:
@@ -83,13 +82,19 @@ async def list_outcomes(
     status: Optional[OutcomeStatusEnum] = Query(None, description="Filter by status"),
     reason_code: Optional[ReasonCodeEnum] = Query(None, description="Filter by reason code"),
     referral_token: Optional[str] = Query(None, description="Filter by referral token"),
-    current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    vsa_id: Optional[str] = Query(None, description="VSA ID filter (VA admin only)"),
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
-    """List outcomes for the current VSA"""
+    """List outcomes. VA admins can see any VSA (optionally filtered via vsa_id); VSA staff only see their own."""
     try:
-        query = db.query(Outcome).filter(Outcome.vsa_id == current_user.vsa_id)
-        
+        if current_user.role == UserRoleEnum.VA_ADMIN:
+            query = db.query(Outcome)
+            if vsa_id:
+                query = query.filter(Outcome.vsa_id == vsa_id)
+        else:
+            query = db.query(Outcome).filter(Outcome.vsa_id == current_user.vsa_id)
+
         # Apply filters
         if status:
             query = query.filter(Outcome.status == status)
@@ -118,16 +123,16 @@ async def list_outcomes(
 @router.get("/{outcome_id}", response_model=OutcomeResponse)
 async def get_outcome(
     outcome_id: str,
-    current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
     """Get a specific outcome"""
     try:
-        outcome = db.query(Outcome).filter(
-            Outcome.id == outcome_id,
-            Outcome.vsa_id == current_user.vsa_id
-        ).first()
-        
+        query = db.query(Outcome).filter(Outcome.id == outcome_id)
+        if current_user.role != UserRoleEnum.VA_ADMIN:
+            query = query.filter(Outcome.vsa_id == current_user.vsa_id)
+        outcome = query.first()
+
         if not outcome:
             raise HTTPException(status_code=404, detail="Outcome not found")
         
@@ -144,7 +149,7 @@ async def update_outcome(
     outcome_id: str,
     outcome_data: OutcomeUpdate,
     current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_with_context)
 ):
     """Update an outcome"""
     try:
@@ -185,7 +190,7 @@ async def update_outcome(
 async def create_bulk_outcomes(
     bulk_data: OutcomeBulkCreate,
     current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_with_context)
 ):
     """Create multiple outcomes in bulk"""
     try:
@@ -261,8 +266,8 @@ async def create_bulk_outcomes(
 @router.get("/summary/stats", response_model=OutcomeStatsResponse)
 async def get_outcome_stats(
     vsa_id: Optional[str] = Query(None, description="VSA ID filter (VA admin only)"),
-    current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
     """Get outcome statistics"""
     try:
@@ -336,8 +341,8 @@ async def get_outcome_stats(
 @router.get("/referral/{referral_token}", response_model=OutcomeResponse)
 async def get_outcome_by_referral(
     referral_token: str,
-    current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
     """Get outcome for a specific referral"""
     try:
@@ -345,10 +350,10 @@ async def get_outcome_by_referral(
         referral = db.query(Referral).filter(Referral.referral_token == referral_token).first()
         if not referral:
             raise HTTPException(status_code=404, detail="Referral not found")
-        
-        if referral.vsa_id != current_user.vsa_id:
+
+        if current_user.role != UserRoleEnum.VA_ADMIN and referral.vsa_id != current_user.vsa_id:
             raise HTTPException(status_code=403, detail="Access denied - referral belongs to different VSA")
-        
+
         # Get the outcome
         outcome = db.query(Outcome).filter(Outcome.referral_token == referral_token).first()
         if not outcome:
@@ -366,7 +371,7 @@ async def get_outcome_by_referral(
 async def delete_outcome(
     outcome_id: str,
     current_user: User = Depends(require_vsa_access()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db_with_context)
 ):
     """Delete an outcome (soft delete by marking as OTHER status)"""
     try:

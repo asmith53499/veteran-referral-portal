@@ -181,30 +181,35 @@ CREATE INDEX idx_referrals_vsa_date ON referrals(vsa_id, issued_at);
 CREATE INDEX idx_outcomes_vsa_status ON outcomes(vsa_id, status);
 
 -- Enable Row Level Security
+-- FORCE is required alongside ENABLE: without it, Postgres exempts the table owner from RLS,
+-- and the app's own DB role (vrp_admin) is that owner since it's the role that ran this schema.
 ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referrals FORCE ROW LEVEL SECURITY;
 ALTER TABLE outcomes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE outcomes FORCE ROW LEVEL SECURITY;
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
 -- RLS Policies for referrals table
 CREATE POLICY referrals_vsa_isolation ON referrals
     FOR ALL USING (vsa_id = current_setting('app.vsa_id', true));
 
 CREATE POLICY referrals_va_access ON referrals
-    FOR ALL USING (current_setting('app.user_role', true) = 'va_admin');
+    FOR ALL USING (current_setting('app.user_role', true) = 'VA_ADMIN');
 
 -- RLS Policies for outcomes table
 CREATE POLICY outcomes_vsa_isolation ON outcomes
     FOR ALL USING (vsa_id = current_setting('app.vsa_id', true));
 
 CREATE POLICY outcomes_va_access ON outcomes
-    FOR ALL USING (current_setting('app.user_role', true) = 'va_admin');
+    FOR ALL USING (current_setting('app.user_role', true) = 'VA_ADMIN');
 
 -- RLS Policies for organizations table
 CREATE POLICY organizations_vsa_own ON organizations
     FOR ALL USING (id = current_setting('app.vsa_id', true));
 
 CREATE POLICY organizations_va_access ON organizations
-    FOR ALL USING (current_setting('app.user_role', true) = 'va_admin');
+    FOR ALL USING (current_setting('app.user_role', true) = 'VA_ADMIN');
 
 -- Create functions for audit logging
 CREATE OR REPLACE FUNCTION audit_trigger_function()

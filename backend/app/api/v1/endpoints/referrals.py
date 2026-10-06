@@ -13,10 +13,11 @@ from datetime import datetime
 import uuid
 from uuid import UUID
 
-from app.core.database import get_db
+from app.core.auth import require_va_access, require_va_or_vsa_access, get_db_with_context
 from app.models.referrals import Referral, ProgramCodeEnum, ReferralTypeEnum, PriorityLevelEnum
+from app.models.users import User, UserRoleEnum
 from app.schemas.referrals import (
-    ReferralCreate, ReferralResponse, ReferralListResponse, 
+    ReferralCreate, ReferralResponse, ReferralListResponse,
     ReferralImportRequest, ReferralImportResponse
 )
 from app.core.pii_detector import detect_pii
@@ -27,9 +28,10 @@ router = APIRouter()
 @router.post("/", response_model=ReferralResponse)
 async def create_referral(
     referral: ReferralCreate,
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_access()),
+    db: Session = Depends(get_db_with_context)
 ):
-    """Create a new referral"""
+    """Create a new referral (VA admin only - referrals originate from the crisis line/VA side)"""
     try:
         # Check if referral token already exists
         existing = db.query(Referral).filter(Referral.referral_token == referral.referral_token).first()
@@ -37,7 +39,7 @@ async def create_referral(
             raise HTTPException(status_code=400, detail="Referral token already exists")
         
         # Create new referral
-        db_referral = Referral(**referral.dict())
+        db_referral = Referral(**referral.model_dump())
         db.add(db_referral)
         db.commit()
         db.refresh(db_referral)
@@ -56,15 +58,19 @@ async def list_referrals(
     program_code: ProgramCodeEnum = None,
     page: int = 1,
     size: int = 100,
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
-    """List referrals with optional filtering"""
+    """List referrals. VA admins can see any VSA (optionally filtered via vsa_id); VSA staff only see their own."""
     try:
-        query = db.query(Referral)
-        
+        if current_user.role == UserRoleEnum.VA_ADMIN:
+            query = db.query(Referral)
+            if vsa_id:
+                query = query.filter(Referral.vsa_id == vsa_id)
+        else:
+            query = db.query(Referral).filter(Referral.vsa_id == current_user.vsa_id)
+
         # Apply filters
-        if vsa_id:
-            query = query.filter(Referral.vsa_id == vsa_id)
         if program_code:
             query = query.filter(Referral.program_code == program_code)
         
@@ -88,14 +94,18 @@ async def list_referrals(
 @router.get("/{referral_token}", response_model=ReferralResponse)
 async def get_referral(
     referral_token: str,
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
     """Get a specific referral by token"""
     try:
-        referral = db.query(Referral).filter(Referral.referral_token == referral_token).first()
+        query = db.query(Referral).filter(Referral.referral_token == referral_token)
+        if current_user.role != UserRoleEnum.VA_ADMIN:
+            query = query.filter(Referral.vsa_id == current_user.vsa_id)
+        referral = query.first()
         if not referral:
             raise HTTPException(status_code=404, detail="Referral not found")
-        
+
         return referral
         
     except HTTPException:
@@ -109,9 +119,10 @@ async def import_referrals_csv(
     file: UploadFile = File(...),
     vsa_id: str = Form(...),
     import_notes: str = Form(None),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_access()),
+    db: Session = Depends(get_db_with_context)
 ):
-    """Import referrals from CSV file"""
+    """Import referrals from CSV file (VA admin only)"""
     try:
         # Validate file type
         if not file.filename.endswith('.csv'):
@@ -222,27 +233,38 @@ async def import_referrals_csv(
 @router.get("/summary/stats")
 async def get_referral_stats(
     vsa_id: str = None,
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_va_or_vsa_access()),
+    db: Session = Depends(get_db_with_context)
 ):
-    """Get referral statistics"""
+    """Get referral statistics. VA admins can see any VSA (optionally filtered via vsa_id); VSA staff only see their own."""
     try:
+        if current_user.role == UserRoleEnum.VA_ADMIN:
+            target_vsa_id = vsa_id
+        else:
+            target_vsa_id = current_user.vsa_id
+
         query = db.query(Referral)
-        
-        if vsa_id:
-            query = query.filter(Referral.vsa_id == vsa_id)
-        
+        if target_vsa_id:
+            query = query.filter(Referral.vsa_id == target_vsa_id)
+
         # Get counts by program code
-        program_stats = db.query(
+        program_stats_query = db.query(
             Referral.program_code,
             func.count(Referral.referral_token)
-        ).group_by(Referral.program_code).all()
-        
+        )
+        if target_vsa_id:
+            program_stats_query = program_stats_query.filter(Referral.vsa_id == target_vsa_id)
+        program_stats = program_stats_query.group_by(Referral.program_code).all()
+
         # Get counts by priority level
-        priority_stats = db.query(
+        priority_stats_query = db.query(
             Referral.priority_level,
             func.count(Referral.referral_token)
-        ).group_by(Referral.priority_level).all()
-        
+        )
+        if target_vsa_id:
+            priority_stats_query = priority_stats_query.filter(Referral.vsa_id == target_vsa_id)
+        priority_stats = priority_stats_query.group_by(Referral.priority_level).all()
+
         # Get total count
         total_referrals = query.count()
         
@@ -250,7 +272,7 @@ async def get_referral_stats(
             "total_referrals": total_referrals,
             "by_program": dict(program_stats),
             "by_priority": dict(priority_stats),
-            "vsa_id": vsa_id
+            "vsa_id": target_vsa_id
         }
         
     except Exception as e:
